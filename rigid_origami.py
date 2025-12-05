@@ -1682,9 +1682,11 @@ if __name__ == "__main__":
     # example_data = generate_waterbomb_grid(1, 1)
     # example_data = generate_waterbomb_grid(6, 3)
     # example_data = generate_waterbomb_grid(20, 20)
-    example_data = input_fold("birdBase")
+    # example_data = input_fold("squareBase", drive_fold_groups=[1,2])
+    # example_data = input_fold("birdBase")
+    # example_data = input_fold("waterbombBase", drive_fold_groups)
     # example_data = input_fold("huffmanWaterbomb", drive_fold_groups=[2])
-    # example_data = input_fold("huffmanRectangularWeave")
+    example_data = input_fold("huffmanRectangularWeave")
     proc = example_data['proc']
     x_start_base = example_data['x_start_base']
     constraint_edges = example_data['constraint_edges']
@@ -1757,6 +1759,6 @@ if __name__ == "__main__":
         angle_min=angle_min,
         angle_max=angle_max,
         initial_angle=initial_angle,
-        draw_driven_edges=True,
+        draw_driven_edges=False,
         draw_labels=False
     )
