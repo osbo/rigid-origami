@@ -50,7 +50,7 @@ The core loop utilizes a Damped Newton-Raphson method to traverse the solution m
 
 ### Real-Time Solving on Large Grids
 
-The system is capable of solving dense grids in real-time. Below is a stress test on a **70x70 Miura-ori grid (approx. 5,000 faces)**, maintaining interactive framerates during manipulation.
+The system is capable of solving dense grids in real-time. Below is a stress test on a **70x70 Miura-ori grid (approx. 20,000 faces)**, maintaining interactive framerates during manipulation.
 
 https://github.com/user-attachments/assets/d0d3b306-e4ea-4289-ba1d-a6207348cf20
 
