@@ -4,7 +4,7 @@
 
 A high-performance, rigid-body solver for complex origami patterns. The program solves for valid 3D configurations of crease patterns by enforcing geometric closure constraints around internal vertices. It leverages JIT compilation, analytical derivatives, and sparse linear algebra to simulate folding mechanics in real-time.
 
-![Huffman Rectangular Weave Simulation](assets/hero_weave.jpg)
+<img width="3472" height="1971" alt="Screenshot 2025-12-05 at 5 27 09 PM" src="https://github.com/user-attachments/assets/f56c3850-7277-4050-a1a1-c7b54e062529" />
 
 *Simulated Huffman Rectangular Weave pattern solving for geometric closure.*
 
@@ -12,15 +12,9 @@ A high-performance, rigid-body solver for complex origami patterns. The program 
 
 The simulation treats origami not as a mass-spring system, but as a system of rigid faces connected by rotational hinges. The core problem is formulated as finding the set of fold angles $\rho$ that satisfy the **Loop Closure Constraint** for every internal vertex in the mesh.
 
-<div align="center">
+https://github.com/user-attachments/assets/801652c6-fb08-45b8-bc42-99f42a1753af
 
-  <img src="assets/demo_unit.gif" width="600" alt="Unit Cell Loop Closure">
-
-  <br>
-
-  <em>Visualization of the loop closure constraint on a single unit cell.</em>
-
-</div>
+*Visualization of the loop closure constraint on a single Waterbomb unit cell.*
 
 For a vertex $v$ with incident edges $e_1, \dots, e_k$, the cumulative rotation of the sector angles $\alpha$ and fold angles $\rho$ must equal the identity matrix:
 
@@ -58,7 +52,7 @@ The core loop utilizes a Damped Newton-Raphson method to traverse the solution m
 
 The system is capable of solving dense grids in real-time. Below is a stress test on a **70x70 Miura-ori grid (approx. 5,000 faces)**, maintaining interactive framerates during manipulation.
 
-![70x70 Miura Grid Performance Test](assets/demo_miura_70x70.gif)
+https://github.com/user-attachments/assets/d0d3b306-e4ea-4289-ba1d-a6207348cf20
 
 ### JIT Compilation & Parallelization
 
@@ -92,8 +86,9 @@ To visualize the 3D structure from 1D fold angles, the system implements a fast 
 
 | Cylindrical Structure | Medium Scale Simulation |
 | :---: | :---: |
-| <img src="assets/tube_structure.jpg" width="100%"> | <img src="assets/demo_medium.gif" width="100%"> |
-| *Complex curvature handling* | *Interactive folding stability* |
+| <img width="3472" height="1971" alt="Screenshot 2025-12-05 at 5 22 51 PM" src="https://github.com/user-attachments/assets/f14c28f8-3763-4bc7-b655-e2ca8cf74423" />
+ | https://github.com/user-attachments/assets/1d970d4f-d281-4b69-8703-14f0687f53da |
+| *Complex structures* | *Interactive folding* |
 
 ## Technical Highlights
 
