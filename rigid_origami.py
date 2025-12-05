@@ -961,9 +961,25 @@ def visualize_with_solver(proc, x_start_base, constraint_edges, eval_f_wrapper, 
     
     p = pv.Plotter()
     
+    # Enable Eye Dome Lighting (EDL) for shadows in creases
+    p.enable_eye_dome_lighting()
+    
     # Create initial mesh for animation
     mesh_anim = pv.PolyData(n_i.copy(), faces_flat)
-    actor = p.add_mesh(mesh_anim, color='lightblue', show_edges=True, edge_color='black')
+    
+    # Add mesh with matte paper-like finish
+    # Blue for surface, light blue for backface
+    actor = p.add_mesh(
+        mesh_anim,
+        color='#3498DB',  # Blue for front face
+        backface_params=dict(color='#85C1E9'),  # Light blue for backface
+        specular=0.1,     # Low specularity for matte paper look
+        diffuse=0.8,      # Good diffuse reflection
+        ambient=0.8,      # Ambient lighting
+        smooth_shading=False,  # Smooth lighting across faces
+        show_edges=True,
+        edge_color='black'
+    )
     
     # Create edge lines for driven edges (will be colored red)
     def create_driven_edges(nodes):
@@ -1118,6 +1134,46 @@ def visualize_with_solver(proc, x_start_base, constraint_edges, eval_f_wrapper, 
             
             # Reset solution cache so it reinitializes when moving away from 0
             current_x_solution = None
+            
+            # =========================================================
+            # Auto-Focus and Auto-Zoom Logic
+            # =========================================================
+            
+            # 1. Get the new center of the mesh (bounding box center)
+            new_center = np.array(mesh_anim.center)
+            
+            # 2. Get the new size (diagonal length of bounding box)
+            #    We use max() to prevent camera crashing into the object if it collapses to a point
+            new_size = max(mesh_anim.length, 0.1) 
+            
+            # 3. Get current camera orientation vectors
+            cam_pos = np.array(p.camera.position)
+            cam_focus = np.array(p.camera.focal_point)
+            
+            # Calculate the vector from focus to camera (the "viewing direction" reversed)
+            vec = cam_pos - cam_focus
+            dist = np.linalg.norm(vec)
+            
+            # Normalize direction so we can scale it
+            if dist > 0:
+                direction = vec / dist
+            else:
+                direction = np.array([0, 0, 1]) # Fallback
+                
+            # 4. Update Focal Point: Lock onto the new center of the origami
+            p.camera.focal_point = new_center
+            
+            # 5. Update Position: Move camera along the view vector to maintain framing
+            #    Factor 2.0 ensures the object fills most of the screen but isn't cut off.
+            #    Adjust 2.0 to 2.5 if you want it further away.
+            p.camera.position = new_center + (direction * new_size * 2.0)
+            
+            # 6. Update Clipping Range to prevent the mesh from being sliced 
+            #    by the near/far planes as it gets smaller
+            p.camera.clipping_range = (new_size * 0.01, new_size * 100)
+            
+            # =========================================================
+            
             p.render()
             return
         
@@ -1177,6 +1233,45 @@ def visualize_with_solver(proc, x_start_base, constraint_edges, eval_f_wrapper, 
             if draw_labels:
                 update_labels(n_solved)
             
+            # =========================================================
+            # Auto-Focus and Auto-Zoom Logic
+            # =========================================================
+            
+            # 1. Get the new center of the mesh (bounding box center)
+            new_center = np.array(mesh_anim.center)
+            
+            # 2. Get the new size (diagonal length of bounding box)
+            #    We use max() to prevent camera crashing into the object if it collapses to a point
+            new_size = max(mesh_anim.length, 0.1) 
+            
+            # 3. Get current camera orientation vectors
+            cam_pos = np.array(p.camera.position)
+            cam_focus = np.array(p.camera.focal_point)
+            
+            # Calculate the vector from focus to camera (the "viewing direction" reversed)
+            vec = cam_pos - cam_focus
+            dist = np.linalg.norm(vec)
+            
+            # Normalize direction so we can scale it
+            if dist > 0:
+                direction = vec / dist
+            else:
+                direction = np.array([0, 0, 1]) # Fallback
+                
+            # 4. Update Focal Point: Lock onto the new center of the origami
+            p.camera.focal_point = new_center
+            
+            # 5. Update Position: Move camera along the view vector to maintain framing
+            #    Factor 2.0 ensures the object fills most of the screen but isn't cut off.
+            #    Adjust 2.0 to 2.5 if you want it further away.
+            p.camera.position = new_center + (direction * new_size * 2.0)
+            
+            # 6. Update Clipping Range to prevent the mesh from being sliced 
+            #    by the near/far planes as it gets smaller
+            p.camera.clipping_range = (new_size * 0.01, new_size * 100)
+            
+            # =========================================================
+            
             p.render()
         except Exception as e:
             print(f"Error solving for target_angle={value:.1f}°: {e}")
@@ -1196,11 +1291,11 @@ def visualize_with_solver(proc, x_start_base, constraint_edges, eval_f_wrapper, 
         interaction_event='always'  # Update continuously while dragging
     )
     
-    # Add key press handler for 'r' to reset slider to 0
+    # Add key press handler for space to reset slider to 0
     def handle_key_press(caller, event):
-        """Handle key press events - 'r' resets slider to 0."""
+        """Handle key press events - space resets slider to 0."""
         key = caller.GetKeySym()
-        if key == 'r' or key == 'R':
+        if key == 'space':
             # Reset slider to 0
             if slider_widget is not None:
                 slider_widget.GetRepresentation().SetValue(initial_angle)
