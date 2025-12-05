@@ -84,11 +84,13 @@ To visualize the 3D structure from 1D fold angles, the system implements a fast 
 
 ### Gallery
 
-| Cylindrical Structure | Medium Scale Simulation |
-| :---: | :---: |
-| <img width="3472" height="1971" alt="Screenshot 2025-12-05 at 5 22 51 PM" src="https://github.com/user-attachments/assets/f14c28f8-3763-4bc7-b655-e2ca8cf74423" />
- | https://github.com/user-attachments/assets/1d970d4f-d281-4b69-8703-14f0687f53da |
-| *Complex structures* | *Interactive folding* |
+<img width="3472" height="1971" alt="Screenshot 2025-12-05 at 5 22 51 PM" src="https://github.com/user-attachments/assets/f14c28f8-3763-4bc7-b655-e2ca8cf74423" />
+
+*Complex structures*
+
+https://github.com/user-attachments/assets/1d970d4f-d281-4b69-8703-14f0687f53da
+
+*Interactive folding*
 
 ## Technical Highlights
 
