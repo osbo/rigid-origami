@@ -857,84 +857,9 @@ def NewtonSolver(eval_f, eval_Jf, x_start, p, errf=1e-10, errDeltax=1e-8, MaxIte
 # 4. Main & Visualization
 # ===================================================================
 
-def visualize_comparison(proc, x_init, x_final):
-    n_i = proc.reconstruct_surface(x_init)
-    n_f = proc.reconstruct_surface(x_final)
-    
-    faces_flat = []
-    for f in proc.faces:
-        faces_flat.append(len(f))
-        faces_flat.extend(f)
-    
-    # Calculate edge midpoints for labeling using initial (flat) nodes
-    edge_points = []
-    edge_labels = []
-    for edge_idx in range(proc.num_edges):
-        u, v = proc.edges[edge_idx]
-        midpoint = (n_i[u] + n_i[v]) / 2.0
-        midpoint[2] += 0.05  # Small z-offset to lift label above mesh
-        edge_points.append(midpoint)
-        edge_labels.append(str(edge_idx))
-    
-    edge_points = np.array(edge_points)
-    
-    p = pv.Plotter(shape=(1, 2))
-    
-    # Left subplot: Initial (Flat)
-    p.subplot(0,0)
-    p.add_text("Initial (Flat)", font_size=10)
-    mesh_i = pv.PolyData(n_i, faces_flat)
-    p.add_mesh(mesh_i, color='lightblue', show_edges=True)
-    # Add edge index labels to the initial (before) graph
-    if len(edge_points) > 0:
-        p.add_point_labels(edge_points, edge_labels, font_size=12, text_color='red', point_size=0, shape=None)
-    p.reset_camera()  # Center and fit the mesh in the view
-    p.view_isometric()
-    
-    # Right subplot: Animated Folding
-    p.subplot(0,1)
-    p.add_text("Folding Animation (Use Slider)", font_size=10)
-    
-    # Create initial mesh for animation
-    mesh_anim = pv.PolyData(n_i.copy(), faces_flat)
-    actor = p.add_mesh(mesh_anim, color='lightblue', show_edges=True)
-    p.reset_camera()
-    p.view_isometric()
-    
-    # Callback function to update mesh based on slider value
-    def update_mesh(value):
-        # Interpolate between initial and final fold angles
-        t = value / 100.0  # Slider value is 0-100, convert to 0-1
-        x_interp = (1 - t) * x_init + t * x_final
-        
-        # Reconstruct surface at interpolated state
-        n_interp = proc.reconstruct_surface(x_interp)
-        
-        # Update mesh vertices
-        mesh_anim.points = n_interp
-        mesh_anim.Modified()  # Notify PyVista that mesh has changed
-        p.render()
-    
-    # Add slider widget (positioned at the bottom of the window)
-    p.add_slider_widget(
-        update_mesh,
-        rng=[0, 100],
-        value=100,
-        title='Folding Progress (%)',
-        pointa=(0.02, 0.07),
-        pointb=(0.98, 0.07),
-        style='modern',
-        title_height=0.02,
-        fmt='%.0f',
-        interaction_event='always'  # Update continuously while dragging
-    )
-    
-    p.link_views()
-    p.show()
-
 def visualize_with_solver(proc, x_start_base, constraint_edges, eval_f_wrapper, eval_Jf_wrapper, 
                           held_mask_base, angle_min=-180, angle_max=180, 
-                          initial_angle=0, draw_driven_edges=True, draw_labels=True):
+                          initial_angle=0, draw_driven_edges=True, draw_labels=True, show_lines=True):
     """
     Visualize origami with slider controlling target_angle.
     When slider changes, reruns the solver with the new target_angle value.
@@ -977,7 +902,7 @@ def visualize_with_solver(proc, x_start_base, constraint_edges, eval_f_wrapper, 
         diffuse=0.8,      # Good diffuse reflection
         ambient=0.8,      # Ambient lighting
         smooth_shading=False,  # Smooth lighting across faces
-        show_edges=True,
+        show_edges=show_lines,
         edge_color='black'
     )
     
@@ -1773,7 +1698,7 @@ if __name__ == "__main__":
     # Get example-specific data
     # example_data = generate_miura_ori_grid(1, 1, 70,)
     # example_data = generate_miura_ori_grid(4, 4, 70)
-    # example_data = generate_miura_ori_grid(50, 50, 70)
+    # example_data = generate_miura_ori_grid(75, 75, 70)
     # example_data = generate_waterbomb_grid(1, 1)
     # example_data = generate_waterbomb_grid(6, 3)
     # example_data = generate_waterbomb_grid(20, 20)
@@ -1855,5 +1780,6 @@ if __name__ == "__main__":
         angle_max=angle_max,
         initial_angle=initial_angle,
         draw_driven_edges=False,
-        draw_labels=False
+        draw_labels=False,
+        show_lines=False
     )
