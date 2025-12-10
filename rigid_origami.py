@@ -884,7 +884,9 @@ def visualize_with_solver(proc, x_start_base, constraint_edges, eval_f_wrapper, 
     # Get list of driven edge indices (for coloring)
     driven_edge_indices = [edge_idx for edge_idx, _ in constraint_edges]
     
-    p = pv.Plotter()
+    # Initialize to maximum windowed window size for 16-inch M3 Max MacBook Pro
+    # Screen resolution: 3456×2234, maximized window accounts for menu bar (~25px)
+    p = pv.Plotter(window_size=(4000, 2400))
     
     # Enable Eye Dome Lighting (EDL) for shadows in creases
     p.enable_eye_dome_lighting()
@@ -1696,90 +1698,92 @@ def generate_waterbomb_grid(n, m, initial_angle=0):
 
 if __name__ == "__main__":
     # Get example-specific data
-    # example_data = generate_miura_ori_grid(1, 1, 70,)
-    # example_data = generate_miura_ori_grid(4, 4, 70)
-    # example_data = generate_miura_ori_grid(75, 75, 70)
-    # example_data = generate_waterbomb_grid(1, 1)
-    # example_data = generate_waterbomb_grid(6, 3)
-    # example_data = generate_waterbomb_grid(20, 20)
-    # example_data = input_fold("squareBase", drive_fold_groups=[1,2])
-    # example_data = input_fold("birdBase")
-    # example_data = input_fold("waterbombBase", drive_fold_groups)
-    # example_data = input_fold("huffmanWaterbomb", drive_fold_groups=[2])
-    example_data = input_fold("huffmanRectangularWeave")
-    proc = example_data['proc']
-    x_start_base = example_data['x_start_base']
-    constraint_edges = example_data['constraint_edges']
-    held_mask_base = example_data['held_mask_base']
-    initial_angle = example_data['initial_angle']
-    angle_min = example_data['angle_min']
-    angle_max = example_data['angle_max']
-    
-    # Warm up Numba JIT compilation at startup
-    proc.warmup_numba_jit()
-    
-    # Wrappers to match NewtonSolver signature
-    def eval_f_wrapper(x, p):
-        return compute_residual(x, p)
+
+    # For demo: run several examples sequentially (no restart needed)
+    example_generators = [
+        ("birdBase (FOLD file)", lambda: input_fold("birdBase")),
+        ("miura-ori 2x2 @ 70°", lambda: generate_miura_ori_grid(2, 2, 70)),
+        ("miura-ori 75x75 @ 70°", lambda: generate_miura_ori_grid(75, 75, 70)),
+    ]
+
+    for name, gen in example_generators:
+        print("\n" + "=" * 70)
+        print(f"Loading example: {name}")
+        print("=" * 70)
+
+        example_data = gen()
+
+        proc = example_data['proc']
+        x_start_base = example_data['x_start_base']
+        constraint_edges = example_data['constraint_edges']
+        held_mask_base = example_data['held_mask_base']
+        initial_angle = example_data['initial_angle']
+        angle_min = example_data['angle_min']
+        angle_max = example_data['angle_max']
         
-    def eval_Jf_wrapper(x, p):
-        return compute_jacobian_analytical(x, p)
-
-    # Run initial solver for output (with initial angle)
-    # Build constraints_initial from constraint_edges
-    constraints_initial = {}
-    for edge_idx, scale_factor in constraint_edges:
-        constraints_initial[edge_idx] = np.deg2rad(scale_factor * initial_angle)
-    
-    x_start_initial = x_start_base.copy()
-    held_mask_initial = held_mask_base.copy()
-    for idx, ang in constraints_initial.items():
-        x_start_initial[idx] = ang
-        held_mask_initial[idx] = True
-    
-    verbose = False
-
-    x_final = NewtonSolver(
-        eval_f_wrapper,
-        eval_Jf_wrapper,
-        x_start_initial,
-        p=proc,
-        held_edges=held_mask_initial,
-        verbose=verbose
-    )
-    
-    if verbose:
-        # Output Results
-        print("\n" + "="*50)
-        print(f"{'Edge ID':<10} | {'Nodes (u,v)':<15} | {'Final Angle (deg)':<20}")
-        print("-" * 50)
+        # Warm up Numba JIT compilation
+        proc.warmup_numba_jit()
         
-        # sorted_indices = np.argsort(np.abs(x_final))[::-1]
-        sorted_indices = range(proc.num_edges)
-        for i in sorted_indices:
-            u, v = proc.edges[i]
-            angle_deg = np.rad2deg(x_final[i])
-            status = "" 
-            if held_mask_initial[i]: status = "(Fixed)"
-            elif abs(angle_deg) < 1e-4: status = "(Flat)"
-            elif angle_deg > 0:       status = "(Valley)"
-            else:                     status = "(Mountain)"
-                
-            print(f"{i:<10} | {f'{u}-{v}':<15} | {angle_deg:<10.4f} {status}")
-        print("="*50)
+        # Wrappers to match NewtonSolver signature
+        def eval_f_wrapper(x, p):
+            return compute_residual(x, p)
+            
+        def eval_Jf_wrapper(x, p):
+            return compute_jacobian_analytical(x, p)
 
-    # Visualize with interactive slider
-    visualize_with_solver(
-        proc, 
-        x_start_base, 
-        constraint_edges,
-        eval_f_wrapper,
-        eval_Jf_wrapper,
-        held_mask_base,
-        angle_min=angle_min,
-        angle_max=angle_max,
-        initial_angle=initial_angle,
-        draw_driven_edges=False,
-        draw_labels=False,
-        show_lines=False
-    )
+        # Run initial solver for output (with initial angle)
+        constraints_initial = {}
+        for edge_idx, scale_factor in constraint_edges:
+            constraints_initial[edge_idx] = np.deg2rad(scale_factor * initial_angle)
+        
+        x_start_initial = x_start_base.copy()
+        held_mask_initial = held_mask_base.copy()
+        for idx, ang in constraints_initial.items():
+            x_start_initial[idx] = ang
+            held_mask_initial[idx] = True
+        
+        verbose = False
+
+        x_final = NewtonSolver(
+            eval_f_wrapper,
+            eval_Jf_wrapper,
+            x_start_initial,
+            p=proc,
+            held_edges=held_mask_initial,
+            verbose=verbose
+        )
+        
+        if verbose:
+            # Output Results
+            print("\n" + "="*50)
+            print(f"{'Edge ID':<10} | {'Nodes (u,v)':<15} | {'Final Angle (deg)':<20}")
+            print("-" * 50)
+            
+            sorted_indices = range(proc.num_edges)
+            for i in sorted_indices:
+                u, v = proc.edges[i]
+                angle_deg = np.rad2deg(x_final[i])
+                status = "" 
+                if held_mask_initial[i]: status = "(Fixed)"
+                elif abs(angle_deg) < 1e-4: status = "(Flat)"
+                elif angle_deg > 0:       status = "(Valley)"
+                else:                     status = "(Mountain)"
+                    
+                print(f"{i:<10} | {f'{u}-{v}':<15} | {angle_deg:<10.4f} {status}")
+            print("="*50)
+
+        # Visualize with interactive slider
+        visualize_with_solver(
+            proc, 
+            x_start_base, 
+            constraint_edges,
+            eval_f_wrapper,
+            eval_Jf_wrapper,
+            held_mask_base,
+            angle_min=angle_min,
+            angle_max=angle_max,
+            initial_angle=initial_angle,
+            draw_driven_edges=False,
+            draw_labels=False,
+            show_lines=False
+        )
