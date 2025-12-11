@@ -37,7 +37,7 @@ Standard Newton iteration is unstable for rigid origami because the "flat sheet"
 
 To resolve this, the solver implements a **step-limited damping scheme (Trust Region approach)**. This constrains iterative updates to the local basin of attraction, preserving frame-to-frame coherence and preventing non-physical mesh inversions.
 
-![Convergence Graph - Residual vs Iterations](https://placeholder-image-url/graph1.png)
+<img width="1272" height="478" alt="convergence" src="https://github.com/user-attachments/assets/f6d5546c-add0-48c9-bf85-9e4ba3ee1c3b" />
 *Figure 1: Convergence comparison. Explicit methods (Forward Euler) fail to converge on non-linear constraints. Undamped Newton methods achieve fast algebraic convergence but suffer from bifurcation. The Damped Newton method (Blue) provides the necessary stability for interactive simulation.*
 
 ### LSMR & Regularization
@@ -55,7 +55,7 @@ This solver utilizes a **Sparse Coordinate (COO)** assembly routine. Since geome
 ### Scalability Benchmarks
 The system exhibits a performance crossover point between 158 and 242 Degrees of Freedom (DOFs). Beyond this threshold, the dense solver hits a cubic bottleneck ($O(N^3)$), while the sparse solver scales according to an empirical power law of approximately **$O(N^{1.2})$**.
 
-![Scalability Graph - Time vs DOFs](https://placeholder-image-url/graph2.png)
+<img width="1109" height="484" alt="scalability" src="https://github.com/user-attachments/assets/9c589f2c-61f0-4a3e-b96d-2cc203eb694a" />
 *Figure 2: Wall-clock execution time vs. Degrees of Freedom. The sparse solver (Blue) enables sub-second convergence for grids >1000 DOFs, maintaining interactive framerates for complex tessellations like the 70x70 Miura-ori.*
 
 ### Memory Layout
