@@ -734,6 +734,170 @@ def plot_sparsity_pattern(grid_size=5):
     return J
 
 # ===================================================================
+# 4. Convergence Time Comparison Test
+# ===================================================================
+
+def test_convergence_times():
+    """
+    Test convergence times for various origami systems.
+    All systems start flat and fold to 30 degrees.
+    Prints a comparison table.
+    """
+    print("=" * 70)
+    print("Convergence Time Comparison Test")
+    print("=" * 70)
+    print("Testing systems: all start flat, fold to 30°")
+    print()
+    
+    from rigid_origami import input_fold, generate_miura_ori_grid, generate_waterbomb_grid
+    
+    # Define test cases
+    test_cases = [
+        ("1×1 Miura-Ori", lambda: generate_miura_ori_grid(1, 1, 70)),
+        ("6×6 Miura-Ori", lambda: generate_miura_ori_grid(6, 6, 70)),
+        ("6×6 Waterbomb", lambda: generate_waterbomb_grid(6, 6)),
+        ("Flapping Bird", lambda: input_fold("flappingBird")),
+    ]
+    
+    results = []
+    
+    for name, generator in test_cases:
+        print(f"Testing {name}...", end=" ", flush=True)
+        
+        try:
+            # Generate the system
+            data = generator()
+            proc = data['proc']
+            proc.warmup_numba_jit()
+            
+            # Setup: start flat, fold to 30 degrees
+            x0 = data['x_start_base'].copy()
+            held_edges = data['held_mask_base'].copy()
+            
+            # Apply 30 degree constraint to driven edges
+            target_angle_deg = 30.0
+            for edge_idx, scale_factor in data['constraint_edges']:
+                angle = np.deg2rad(scale_factor * target_angle_deg)
+                x0[edge_idx] = angle
+                held_edges[edge_idx] = True
+            
+            # Time the solver and track iterations
+            max_iter = 100
+            t0 = time.time()
+            
+            # Wrapper to track iterations
+            k = 0
+            N = len(x0)
+            x_curr = x0.copy()
+            f = compute_residual(x_curr, proc)
+            
+            if len(f) == 0:
+                num_iterations = 0
+                x_solution = x_curr
+            else:
+                errf_k = np.linalg.norm(f, np.inf)
+                free_indices = np.where(~held_edges)[0]
+                
+                while k < max_iter and errf_k > 1e-6:
+                    Jf = compute_jacobian_analytical(x_curr, proc)
+                    J_free = Jf[:, free_indices]
+                    f_vec = -f
+                    
+                    result = lsmr(J_free, f_vec, atol=1e-8, btol=1e-8)
+                    dx_free = result[0]
+                    
+                    dx = np.zeros(N)
+                    dx[free_indices] = dx_free
+                    
+                    step_scale = 1.0
+                    max_step = 0.5
+                    if np.max(np.abs(dx)) > max_step:
+                        step_scale = max_step / np.max(np.abs(dx))
+                    
+                    x_curr += dx * step_scale
+                    f = compute_residual(x_curr, proc)
+                    
+                    if len(f) == 0:
+                        break
+                    
+                    errf_k = np.linalg.norm(f, np.inf)
+                    errDx = np.linalg.norm(dx * step_scale, np.inf)
+                    
+                    k += 1
+                    
+                    if errDx < 1e-6:
+                        break
+                
+                num_iterations = k
+                x_solution = x_curr
+            
+            t_elapsed = time.time() - t0
+            
+            # Check final residual
+            f_final = compute_residual(x_solution, proc)
+            if len(f_final) > 0:
+                final_residual = np.linalg.norm(f_final, np.inf)
+            else:
+                final_residual = 0.0
+            
+            # Count DOFs
+            num_dofs = len(x0)
+            
+            results.append({
+                'name': name,
+                'time': t_elapsed,
+                'dofs': num_dofs,
+                'residual': final_residual,
+                'iterations': num_iterations,
+                'max_iter': max_iter,
+                'status': 'Success' if final_residual < 1e-6 else 'Failed',
+                'error': None
+            })
+            
+            status_str = "✓" if final_residual < 1e-6 else "✗"
+            iter_ratio = num_iterations / max_iter if max_iter > 0 else 0.0
+            print(f"{status_str} {t_elapsed:.4f}s (DOFs: {num_dofs}, iterations: {num_iterations}/{max_iter} ({iter_ratio:.3f}), residual: {final_residual:.2e})")
+            
+        except Exception as e:
+            results.append({
+                'name': name,
+                'time': None,
+                'dofs': None,
+                'residual': None,
+                'iterations': None,
+                'max_iter': max_iter,
+                'status': 'Failed',
+                'error': str(e)
+            })
+            print(f"✗ Failed: {e}")
+    
+    # Print comparison table
+    print("\n" + "=" * 110)
+    print("CONVERGENCE TIME COMPARISON TABLE")
+    print("=" * 110)
+    print(f"{'System':<20} | {'DOFs':<10} | {'Time (s)':<12} | {'Iterations/MaxIter':<20} | {'Final Residual':<15} | {'Status':<10}")
+    print("-" * 110)
+    
+    for r in results:
+        name = r['name']
+        dofs_str = f"{r['dofs']}" if r['dofs'] is not None else "N/A"
+        time_str = f"{r['time']:.4f}" if r['time'] is not None else "N/A"
+        if r['iterations'] is not None and r['max_iter'] is not None:
+            iter_ratio = r['iterations'] / r['max_iter']
+            iter_str = f"{r['iterations']}/{r['max_iter']} ({iter_ratio:.3f})"
+        else:
+            iter_str = "N/A"
+        residual_str = f"{r['residual']:.2e}" if r['residual'] is not None else "N/A"
+        status = r['status']
+        
+        print(f"{name:<20} | {dofs_str:<10} | {time_str:<12} | {iter_str:<20} | {residual_str:<15} | {status:<10}")
+    
+    print("=" * 110)
+    print()
+    
+    return results
+
+# ===================================================================
 # 5. Main Execution
 # ===================================================================
 
@@ -743,24 +907,30 @@ if __name__ == "__main__":
     print("=" * 70)
     print()
     
-    # Graph A: Convergence Stability
-    print("\n" + "=" * 70)
-    print("GRAPH A: Convergence Stability Comparison")
-    print("=" * 70)
-    plot_convergence_comparison(grid_size=6, max_iter=200)
+    # # Graph A: Convergence Stability
+    # print("\n" + "=" * 70)
+    # print("GRAPH A: Convergence Stability Comparison")
+    # print("=" * 70)
+    # plot_convergence_comparison(grid_size=6, max_iter=200)
     
-    # Graph B: Scalability
-    print("\n" + "=" * 70)
-    print("GRAPH B: Solver Scalability Comparison")
-    print("=" * 70)
-    test_solver_scalability(max_grid_size=20)
+    # # Graph B: Scalability
+    # print("\n" + "=" * 70)
+    # print("GRAPH B: Solver Scalability Comparison")
+    # print("=" * 70)
+    # test_solver_scalability(max_grid_size=20)
     
-    # Graph C: Sparsity Pattern
+    # # Graph C: Sparsity Pattern
+    # print("\n" + "=" * 70)
+    # print("GRAPH C: Jacobian Sparsity Pattern")
+    # print("=" * 70)
+    # plot_sparsity_pattern(grid_size=6)
+    
+    # Convergence Time Comparison Test
     print("\n" + "=" * 70)
-    print("GRAPH C: Jacobian Sparsity Pattern")
+    print("CONVERGENCE TIME COMPARISON TEST")
     print("=" * 70)
-    plot_sparsity_pattern(grid_size=6)
+    test_convergence_times()
     
     print("\n" + "=" * 70)
-    print("All graphs generated successfully!")
+    print("All tests completed!")
     print("=" * 70)
