@@ -38,9 +38,9 @@ Closure constraints are topologically local — each fold only affects vertices 
 
 Beyond ~200 DOFs the dense solver hits an $O(N^3)$ wall; the sparse solver scales empirically as ≈ $O(N^{1.2})$ and stays interactive on a 70×70 Miura grid.
 
-### Visualisation
+### Visualization
 
-3D coordinates are reconstructed from fold angles in $O(N)$ by a BFS over the face graph rooted at the centre, propagating rigid transforms via Rodrigues' formula. PyVista handles the live rendering.
+3D coordinates are reconstructed from fold angles in $O(N)$ by a BFS over the face graph rooted at the center, propagating rigid transforms via Rodrigues' formula. PyVista handles the live rendering.
 
 ## Patterns
 
@@ -54,7 +54,7 @@ Non-rigid patterns (e.g. flapping bird, which physically requires panel bending)
 ## Stack
 
 - **Python** — NumPy, SciPy (`lsmr`), Numba (JIT + `prange`)
-- **PyVista** — interactive 3D visualisation
+- **PyVista** — interactive 3D visualization
 
 ## License
 
